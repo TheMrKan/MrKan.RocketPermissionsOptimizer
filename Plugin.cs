@@ -21,13 +21,16 @@ namespace MrKan.RocketPermissionsOptimizer
 
             m_Harmony = new Harmony("MrKan.RocketPermissionsOptimizer");
             m_Harmony.PatchAll();
+            PermissionHelperPatches.ApplyManualPatches(m_Harmony);
 
             Helper = new();
         }
 
         protected override void Unload()
         {
-            m_Harmony.UnpatchAll("MrKan.RocketPermissionsOptimizer");
+            Helper?.Dispose();
+
+            m_Harmony?.UnpatchAll("MrKan.RocketPermissionsOptimizer");
 
             Instance = null;
         }

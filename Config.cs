@@ -11,7 +11,7 @@ namespace MrKan.RocketPermissionsOptimizer
     {
         public void LoadDefaults()
         {
-            throw new NotImplementedException();
+            
         }
     }
 }
