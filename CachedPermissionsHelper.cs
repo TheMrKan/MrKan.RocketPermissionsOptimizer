@@ -24,11 +24,13 @@ namespace MrKan.RocketPermissionsOptimizer
             internal string PlayerId { get; }
             internal List<RocketPermissionsGroup> DirectGroups { get; set; }
             internal List<RocketPermissionsGroup> AllGroups { get; set; }
+            internal Dictionary<string, Permission> Permissions { get; set; }
             internal PlayerPermissions(string playerId)
             {
                 PlayerId = playerId;
                 DirectGroups = new();
                 AllGroups = new();
+                Permissions = new();
             }
         }
 
@@ -74,6 +76,7 @@ namespace MrKan.RocketPermissionsOptimizer
 
             playerPermissions = new(id);
             BuildPlayerGroups(playerPermissions);
+            BuildPlayerPermissions(playerPermissions);
             return playerPermissions;
         }
 
@@ -152,6 +155,28 @@ namespace MrKan.RocketPermissionsOptimizer
             perms.AllGroups = perms.AllGroups.Distinct().OrderBy(g => g.Priority).ToList();
         }
 
+        private void BuildPlayerPermissions(PlayerPermissions perms)
+        {
+            perms.Permissions.Clear();
+            foreach (var group in Enumerable.Reverse(perms.AllGroups))
+            {
+                foreach (var p in group.Permissions)
+                {
+                    if (p.Name.StartsWith("-"))
+                    {
+                        if (perms.Permissions.ContainsKey(p.Name.ToLower()))
+                        {
+                            perms.Permissions.Remove(p.Name.ToLower());
+                        }
+                    }
+                    else
+                    {
+                        perms.Permissions[p.Name.ToLower()] = p;
+                    }
+                }
+            }
+        }
+
         public RocketPermissionsGroup? GetGroup(string groupId)
         {
             if (m_IdUniqueGroups.TryGetValue(groupId.ToLower(), out var group)) return group;
@@ -172,6 +197,54 @@ namespace MrKan.RocketPermissionsOptimizer
                 return perms.AllGroups.ToList();
             }
             return perms.DirectGroups.ToList();
+        }
+
+        public List<Permission> GetPlayerPermissions(IRocketPlayer player)
+        {
+            var perms = GetPlayerPermissionsObject(player.Id);
+            return perms.Permissions.Values.ToList();
+        }
+
+        private bool HasPermissionExact(PlayerPermissions perms, string name, out Permission? p)
+        {
+            return perms.Permissions.TryGetValue(name.ToLower(), out p);
+        }
+
+        public List<Permission> GetPlayerPermissions(IRocketPlayer player, List<string> requestedPermissions)
+        {
+            var perms = GetPlayerPermissionsObject(player.Id);
+
+            var result = new List<Permission>();
+
+            if (HasPermissionExact(perms, "*", out var p))
+            {
+                result.Add(p!);
+                return result;
+            }
+            
+            foreach (var req in requestedPermissions)
+            {
+                if (HasPermissionExact(perms, req, out p))
+                {
+                    result.Add(p!);
+                    continue;
+                }
+
+                for (int i = req.Length - 1; i > 0; i--)
+                {
+                    if (req[i] != '.')
+                    {
+                        continue;
+                    }
+                    if (HasPermissionExact(perms, req.Substring(0, i+1) + "*", out p))
+                    {
+                        result.Add(p!);
+                        break;
+                    }
+                }
+            }
+
+            return result;
         }
 
         public void Dispose()

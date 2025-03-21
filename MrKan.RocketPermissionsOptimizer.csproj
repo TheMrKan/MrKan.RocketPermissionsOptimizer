@@ -317,6 +317,7 @@
     <Compile Include="CachedPermissionsHelper.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="PermissionHelperPatches.cs" />
+    <Compile Include="PermissionsTreeNode.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
